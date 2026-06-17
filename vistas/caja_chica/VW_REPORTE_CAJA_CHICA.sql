@@ -28,7 +28,7 @@ FROM
     AND T1."InvType" = 18
     LEFT JOIN PCH1 T4 ON T2."DocEntry" = T4."DocEntry"
 WHERE
-    T0."CashAcct" IN ('12345678', '87654321')
+    T0."CashAcct" IN ('12345678', '87654321') /*Reemplazar con las cuentas de caja chica correspondientes*/
 UNION ALL
 SELECT
     T0."DocNum" AS "Pago",
@@ -55,7 +55,7 @@ FROM
     OVPM T0
     INNER JOIN VPM4 T3 ON T0."DocEntry" = T3."DocNum"
 WHERE
-    T0."CashAcct" IN ('12345678', '87654321')
+    T0."CashAcct" IN ('12345678', '87654321') /*Reemplazar con las cuentas de caja chica correspondientes*/
 ORDER BY
     "Pago",
     "TipoDetalle",

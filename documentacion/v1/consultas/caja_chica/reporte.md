@@ -5,7 +5,7 @@
 GET /api/v1/consultas/caja_chica/reporte.php
 ```
 
-Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORTE_CAJA_CHICA`](../../../../vistas/caja_chica/vista_reporte_caja_chica.sql) de SAP HANA.
+Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORTE_CAJA_CHICA`](../../../../vistas/caja_chica/VW_REPORTE_CAJA_CHICA.sql) de SAP HANA.
 
 ---
 
