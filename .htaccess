@@ -1,0 +1,11 @@
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+<FilesMatch "^\.env|config/">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(md|sql|log)$">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,10 @@
+/.env
+/.env.local
+/.env.production
+/.env.development
+/vendor/
+/composer.lock
+.DS_Store
+Thumbs.db
+*.log
+/node_modules/

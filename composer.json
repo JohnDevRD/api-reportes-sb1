@@ -1,0 +1,30 @@
+{
+    "name": "tu-org/api-reportes-sb1",
+    "description": "API REST PHP para consultas y reportes desde SAP HANA vía ODBC",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "JohnDevRD",
+            "email": "johnreyes.dev@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        },
+        "files": [
+            "config/conexion.php"
+        ]
+    },
+    "require": {
+        "php": ">=8.0",
+        "ext-odbc": "*",
+        "ext-mbstring": "*",
+        "ext-json": "*"
+    },
+    "scripts": {
+        "lint": "php -l api/ config/",
+        "check": "php -l api/ config/"
+    }
+}
