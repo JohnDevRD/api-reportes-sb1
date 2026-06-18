@@ -17,7 +17,6 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
 |-----------|------|-------------|-------------|-------------------|
 | `page` | `int` (≥ 1) | No | Número de página. | `1` |
 | `limit` | `int` (1–500) | No | Registros por página. | `100` |
-| `include_total` | `bool` | No | Si `true`, incluye el total de registros del filtro. | `true` |
 
 ### Filtros de fecha
 
@@ -35,23 +34,25 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
 | `pago` | `Pago` | Número de pago exacto. |
 | `card_code` | `CardCode` | Código de cliente/proveedor exacto. |
 | `cash_acct` | `CashAcct` | Cuenta de efectivo exacta. |
-| `tipo_detalle` | `TipoDetalle` | Tipo de detalle exacto (`FACTURA` o `CUENTA`). |
+| `tipo_detalle` | `TipoDetalle` | Tipo de detalle exacto (`FACTURA PROVEEDOR`, `FACTURA CLIENTE`, `CLIENTE (A CUENTA)`, `PROVEEDOR (A CUENTA)`, `CUENTA`, `OTROS`). |
 | `documento_origen` | `DocumentoOrigen` | Número de documento origen exacto. |
+| `num_at_card` | `NumAtCardFactura` | Número de factura del proveedor (DocNum del socio). |
 
 ### Filtros de texto (búsqueda parcial — `LIKE %...%`)
 
 | Parámetro | Columna | Descripción |
 |-----------|---------|-------------|
 | `card_name` | `CardName` | Nombre del cliente/proveedor (contiene). |
-| `descripcion` | `Descripcion` | Descripción del movimiento (contiene). |
+| `comments_factura` | `CommentsFactura` | Comentarios de la factura (contiene). |
+| `comments_pago` | `CommentsPago` | Comentarios del pago (contiene). |
 
 ### Filtros numéricos
 
 | Parámetro | Columna | Tipo | Descripción |
 |-----------|---------|------|-------------|
 | `linea` | `Linea` | `int` | Número de línea exacto. |
-| `sum_min` | `SumApplied` | `decimal` | Importe mínimo aplicado. |
-| `sum_max` | `SumApplied` | `decimal` | Importe máximo aplicado. |
+| `sum_min` | `GTotal` | `decimal` | Importe mínimo total. |
+| `sum_max` | `GTotal` | `decimal` | Importe máximo total. |
 
 > **Validaciones**
 > - Las fechas deben tener formato `YYYY-MM-DD` y ser fechas válidas en el calendario.
@@ -71,7 +72,7 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
   "total": 1234,
   "page": 1,
   "limit": 50,
-  "page_total": 50,
+  "pages_total": 25,
   "filters": {
     "desde": "2026-06-01",
     "hasta": "2026-06-14",
@@ -81,12 +82,15 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
     "card_code": null,
     "card_name": "Ejemplo",
     "cash_acct": null,
-    "tipo_detalle": "FACTURA",
+    "tipo_detalle": "FACTURA PROVEEDOR",
     "linea": null,
-    "descripcion": null,
     "documento_origen": null,
     "sum_min": null,
-    "sum_max": null
+    "sum_max": null,
+    "ocr_code": null,
+    "comments_factura": null,
+    "comments_pago": null,
+    "num_at_card": null
   },
   "data": [
     {
@@ -95,12 +99,17 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
       "CardCode": "C00001",
       "CardName": "EMPRESA DE EJEMPLO SRL",
       "CashAcct": "11010201",
-      "TipoDetalle": "FACTURA",
+      "TipoDetalle": "FACTURA PROVEEDOR",
       "Linea": "0",
-      "Descripcion": "Descripción de ejemplo",
-      "SumApplied": "161.420000",
+      "GTotal": "161.420000",
       "DocumentoOrigen": "20000001",
-      "FechaOrigen": "2026-06-03"
+      "FechaOrigen": "2026-06-03",
+      "TotalOrigen": "161.42",
+      "OcrCode": "101",
+      "CommentsPago": null,
+      "CommentsFactura": null,
+      "NumAtCardFactura": "FACT-001",
+      "InvType": "18"
     }
   ]
 }
@@ -131,12 +140,17 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
 | `CardCode` | `string` | Código del cliente o proveedor. |
 | `CardName` | `string` | Nombre del cliente o proveedor. |
 | `CashAcct` | `string` | Cuenta de efectivo utilizada. |
-| `TipoDetalle` | `string` | `FACTURA` o `CUENTA` según el origen del registro. |
+| `TipoDetalle` | `string` | Tipo de detalle: `FACTURA PROVEEDOR`, `FACTURA CLIENTE`, `CLIENTE (A CUENTA)`, `PROVEEDOR (A CUENTA)`, `CUENTA`, `OTROS`. |
 | `Linea` | `string` | Número de línea dentro del documento. |
-| `Descripcion` | `string` | Descripción del movimiento. |
-| `SumApplied` | `string` | Importe aplicado (con 6 decimales). |
+| `GTotal` | `string` | Importe total del movimiento (con 6 decimales). |
 | `DocumentoOrigen` | `string` | Número del documento origen. |
 | `FechaOrigen` | `date` | Fecha del documento origen (`YYYY-MM-DD`). Puede ser `null`. |
+| `TotalOrigen` | `string` | Total del documento origen. Puede ser `null`. |
+| `OcrCode` | `string` | Código de centro de costo. |
+| `CommentsPago` | `string` | Comentarios del pago. |
+| `CommentsFactura` | `string` | Comentarios de la factura. |
+| `NumAtCardFactura` | `string` | Número de documento del socio (factura proveedor). |
+| `InvType` | `string` | Tipo de documento origen (`18` = factura proveedor, `13` = factura cliente). |
 
 ---
 
@@ -147,13 +161,13 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
 curl "http://localhost/api-reportes-sb1/api/v1/consultas/caja_chica/reporte.php?desde=2026-06-01&hasta=2026-06-14&page=1&limit=50"
 
 # Por cliente y tipo de detalle
-curl ".../reporte.php?card_code=C00001&tipo_detalle=FACTURA"
+curl ".../reporte.php?card_code=C00001&tipo_detalle=FACTURA+PROVEEDOR"
 
 # Búsqueda parcial por nombre de cliente y rango de monto
 curl ".../reporte.php?card_name=Almacenes&sum_min=100&sum_max=5000"
 
-# Por descripción parcial sin límite de total (más rápido)
-curl ".../reporte.php?descripcion=combustible&include_total=false&limit=200"
+# Por número de factura de proveedor
+curl ".../reporte.php?num_at_card=FACT-001"
 
 # Combinado: cuenta de caja + rango de fecha origen + página 2
 curl ".../reporte.php?cash_acct=11010201&fecha_origen_desde=2026-05-01&fecha_origen_hasta=2026-05-31&page=2&limit=50"
@@ -168,8 +182,7 @@ curl ".../reporte.php?cash_acct=11010201&fecha_origen_desde=2026-05-01&fecha_ori
 - Todas las consultas usan `odbc_prepare()` + `odbc_execute()` con parámetros posicionales (`?`) para evitar inyección SQL.
 - Los campos `DocDate` y `FechaOrigen` se sanitizan en PHP para eliminar bytes nulos que ODBC puede inyectar en buffers de tipo fecha. Solo se conserva la parte `YYYY-MM-DD`.
 - Todos los valores de texto se normalizan a UTF-8 con `mb_convert_encoding` para evitar problemas de codificación.
-- La paginación y el conteo total son independientes; desactivar `include_total` elimina la query de `COUNT(*)` y reduce la carga en consultas grandes.
 
 ---
 
-*Documentado el 2026-06-14 — v2*
+*Documentado el 2026-06-18 — v3*

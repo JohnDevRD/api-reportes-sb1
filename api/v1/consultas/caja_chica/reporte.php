@@ -17,9 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 const DATA_COLUMNS_SQL = <<<'SQL'
 SELECT
     "Pago", "DocDate", "CardCode", "CardName", "CashAcct",
-    "TipoDetalle", "Linea", "Descripcion", "GTotal",
-    "DocumentoOrigen", "FechaOrigen",
-    "OcrCode", "CommentsFactura"
+    "TipoDetalle", "Linea", "GTotal",
+    "DocumentoOrigen", "FechaOrigen", "TotalOrigen",
+    "OcrCode", "CommentsPago", "CommentsFactura", "NumAtCardFactura",
+    "InvType"
 FROM "VW_REPORTE_CAJA_CHICA"
 SQL;
 
@@ -244,13 +245,14 @@ $textFilters = [
     'card_name'          => 'CardName',           // LIKE
     'cash_acct'          => 'CashAcct',
     'tipo_detalle'       => 'TipoDetalle',
-    'descripcion'        => 'Descripcion',         // LIKE
     'documento_origen'   => 'DocumentoOrigen',
     'ocr_code'           => 'OcrCode',
     'comments_factura'   => 'CommentsFactura',     // LIKE
+    'comments_pago'      => 'CommentsPago',        // LIKE
+    'num_at_card'        => 'NumAtCardFactura',
 ];
 
-$likeFields = ['CardName', 'Descripcion', 'CommentsFactura'];
+$likeFields = ['CardName', 'CommentsFactura', 'CommentsPago'];
 
 foreach ($textFilters as $param => $column) {
     $val = string_param($param);
@@ -374,12 +376,13 @@ json_response(200, [
         'cash_acct'          => string_param('cash_acct'),
         'tipo_detalle'       => string_param('tipo_detalle'),
         'linea'              => $linea ?: null,
-        'descripcion'        => string_param('descripcion'),
         'documento_origen'   => string_param('documento_origen'),
         'sum_min'            => $sumMin,
         'sum_max'            => $sumMax,
         'ocr_code'           => string_param('ocr_code'),
         'comments_factura'   => string_param('comments_factura'),
+        'comments_pago'      => string_param('comments_pago'),
+        'num_at_card'        => string_param('num_at_card'),
     ],
     'data'       => $data,
 ]);
