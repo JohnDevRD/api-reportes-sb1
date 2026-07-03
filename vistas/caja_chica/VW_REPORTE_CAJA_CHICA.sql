@@ -21,7 +21,7 @@ SELECT
     COALESCE(T2."DocTotal", T5."DocTotal") AS "TotalOrigen",
     T4."OcrCode" AS "OcrCode",
     COALESCE(T4."GTotal", T6."GTotal", T3."SumApplied", T0."NoDocSum") AS "GTotal",
-    T0."Comments" AS "CommentsPago",
+    T4."Dscription" AS "Categoria",
     COALESCE(T2."NumAtCard", T5."NumAtCard") AS "NumAtCardFactura",
     COALESCE(T2."Comments", T5."Comments") AS "CommentsFactura",
     COALESCE(T2."ObjType", T5."ObjType") AS "ObjType"

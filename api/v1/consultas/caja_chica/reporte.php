@@ -19,7 +19,7 @@ SELECT
     "Pago", "DocDate", "CardCode", "CardName", "CashAcct",
     "TipoDetalle", "Linea", "GTotal",
     "DocumentoOrigen", "FechaOrigen", "TotalOrigen",
-    "OcrCode", "CommentsPago", "CommentsFactura", "NumAtCardFactura",
+    "OcrCode", "Categoria", "CommentsFactura", "NumAtCardFactura",
     "InvType"
 FROM "VW_REPORTE_CAJA_CHICA"
 SQL;
@@ -248,11 +248,11 @@ $textFilters = [
     'documento_origen'   => 'DocumentoOrigen',
     'ocr_code'           => 'OcrCode',
     'comments_factura'   => 'CommentsFactura',     // LIKE
-    'comments_pago'      => 'CommentsPago',        // LIKE
+    'categoria'          => 'Categoria',            // LIKE
     'num_at_card'        => 'NumAtCardFactura',
 ];
 
-$likeFields = ['CardName', 'CommentsFactura', 'CommentsPago'];
+$likeFields = ['CardName', 'CommentsFactura', 'Categoria'];
 
 foreach ($textFilters as $param => $column) {
     $val = string_param($param);
@@ -381,7 +381,7 @@ json_response(200, [
         'sum_max'            => $sumMax,
         'ocr_code'           => string_param('ocr_code'),
         'comments_factura'   => string_param('comments_factura'),
-        'comments_pago'      => string_param('comments_pago'),
+        'categoria'          => string_param('categoria'),
         'num_at_card'        => string_param('num_at_card'),
     ],
     'data'       => $data,
