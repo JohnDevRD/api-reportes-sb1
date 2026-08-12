@@ -1,0 +1,5 @@
+# Cliente oficial de SAP para Python (protocolo nativo HANA, sin driver ODBC)
+# Es el recomendado. Si por política de tu empresa no puedes usarlo,
+# descomenta la linea siguiente y comenta la de hdbcli.
+hdbcli>=3.0.0
+# pyhdb

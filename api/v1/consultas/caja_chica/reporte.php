@@ -279,45 +279,24 @@ $offset = ($page - 1) * $limit;
 [$whereSql, $whereParams] = build_where($conditions, $params);
 
 // ─── Conexión ─────────────────────────────────────────────────────────────────
-
-$conn = get_hana_connection();
-
-if ($conn === false) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo conectar a SAP HANA.',
-        'error'   => sanitize_error(odbc_errormsg())
-    ]);
-}
+// La conexion se hace a traves del bridge HANA (hana_query) en cada consulta;
+// no se mantiene un recurso ODBC persistente.
 
 // ─── Consulta de total (siempre se ejecuta) ───────────────────────────────────
 
-$countSql  = 'SELECT COUNT(*) AS "TOTAL" FROM "VW_REPORTE_CAJA_CHICA"' . $whereSql;
-$countStmt = odbc_prepare($conn, $countSql);
+$countSql = 'SELECT COUNT(*) AS "TOTAL" FROM "VW_REPORTE_CAJA_CHICA"' . $whereSql;
 
-if ($countStmt === false) {
+try {
+    $countRows = hana_query($countSql, $whereParams);
+} catch (Throwable $e) {
     json_response(500, [
         'ok'      => false,
-        'message' => 'No se pudo preparar la consulta de total.',
-        'error'   => sanitize_error(odbc_errormsg($conn))
+        'message' => 'No se pudo consultar el total.',
+        'error'   => sanitize_error($e->getMessage())
     ]);
 }
 
-if (!odbc_execute($countStmt, $whereParams)) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo ejecutar la consulta de total.',
-        'error'   => sanitize_error(odbc_errormsg($countStmt))
-    ]);
-}
-
-$total = null;
-
-if (odbc_fetch_row($countStmt)) {
-    $total = (int) odbc_result($countStmt, 1);
-}
-
-odbc_free_result($countStmt);
+$total = (int) ($countRows[0]['TOTAL'] ?? 0);
 
 // ─── Consulta de datos ────────────────────────────────────────────────────────
 
@@ -326,32 +305,21 @@ $dataSql = DATA_COLUMNS_SQL
     . ' ORDER BY "DocDate" DESC, "Pago", "TipoDetalle", "Linea"'
     . ' LIMIT ' . $limit . ' OFFSET ' . $offset;
 
-$dataStmt = odbc_prepare($conn, $dataSql);
-
-if ($dataStmt === false) {
+try {
+    $rows = hana_query($dataSql, $whereParams);
+} catch (Throwable $e) {
     json_response(500, [
         'ok'      => false,
-        'message' => 'No se pudo preparar la consulta del reporte.',
-        'error'   => sanitize_error(odbc_errormsg($conn))
-    ]);
-}
-
-if (!odbc_execute($dataStmt, $whereParams)) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo ejecutar la consulta del reporte.',
-        'error'   => sanitize_error(odbc_errormsg($dataStmt))
+        'message' => 'No se pudo consultar el reporte.',
+        'error'   => sanitize_error($e->getMessage())
     ]);
 }
 
 $data = [];
 
-while (($row = odbc_fetch_array($dataStmt)) !== false) {
+foreach ($rows as $row) {
     $data[] = sanitize_row($row); // ← limpia fechas y encoding
 }
-
-odbc_free_result($dataStmt);
-odbc_close($conn);
 
 // ─── Respuesta ────────────────────────────────────────────────────────────────
 

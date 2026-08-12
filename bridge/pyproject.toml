@@ -1,0 +1,17 @@
+[project]
+name = "hana-bridge"
+version = "1.0.0"
+description = "Puente HTTP entre la API PHP y SAP HANA (protocolo nativo, sin driver ODBC). Multiplataforma (Windows/Linux)."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    # hdbcli: cliente oficial de SAP para Python (protocolo nativo).
+    "hdbcli>=3.0.0",
+    # pyhdb: driver puro en Python, usado como respaldo si hdbcli falla.
+    "pyhdb",
+]
+
+[tool.uv]
+# Este proyecto es un script independiente, no un paquete instalable:
+# uv solo gestiona el entorno y las dependencias.
+package = false

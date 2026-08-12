@@ -32,29 +32,73 @@ function env_value(string $key, string $default = ''): string
     return $value === false ? $default : $value;
 }
 
-function build_hana_connection_string(): string
+/**
+ * Capa de acceso a SAP HANA sin ODBC.
+ *
+ * Envia la consulta al bridge Python (bridge/hana_bridge.py) que corre en
+ * 127.0.0.1 y habla el protocolo nativo de HANA. Devuelve un array de filas
+ * asociativas (columna => valor).
+ *
+ * @throws RuntimeException si el bridge no responde o la consulta falla.
+ */
+function hana_query(string $sql, array $params = []): array
 {
-    $driver = env_value('DB_DRIVER', '{B1CRHPROXY}');
-    $serverNode = env_value('DB_SERVERNODE', 'hanab1:30013');
-    $database = env_value('DB_DATABASE', 'DB_ACV');
-    $databaseName = env_value('DB_DATABASE_NAME', 'NDB');
+    $url   = env_value('BRIDGE_URL', 'http://127.0.0.1:8088/query');
+    $token = env_value('BRIDGE_TOKEN', '');
 
-    return "DRIVER={$driver};SERVERNODE={$serverNode};DATABASE={$database};databaseName={$databaseName}";
-}
+    $payload = json_encode([
+        'sql'    => $sql,
+        'params' => array_values($params),
+    ], JSON_UNESCAPED_UNICODE);
 
-function get_hana_connection()
-{
-    static $conn = null;
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Accept: application/json',
+        'X-Bridge-Token: ' . $token,
+    ]);
 
-    if ($conn !== null) {
-        return $conn;
+    $response = curl_exec($ch);
+
+    if ($response === false) {
+        $err = curl_error($ch);
+        curl_close($ch);
+        throw new RuntimeException('Error de comunicacion con el bridge HANA: ' . $err);
     }
 
-    $connectionString = build_hana_connection_string();
-    $user = env_value('DB_USER');
-    $password = env_value('DB_PASSWORD');
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-    $conn = odbc_connect($connectionString, $user, $password);
+    $data = json_decode($response, true);
 
-    return $conn;
+    if (!is_array($data)) {
+        throw new RuntimeException('Respuesta invalida del bridge HANA (HTTP ' . $httpCode . ').');
+    }
+
+    if (empty($data['ok'])) {
+        throw new RuntimeException($data['error'] ?? 'Error desconocido del bridge HANA.');
+    }
+
+    $columns = array_values($data['columns'] ?? []);
+    $rows    = $data['rows'] ?? [];
+
+    $result = [];
+
+    foreach ($rows as $row) {
+        $assoc = [];
+
+        foreach ($columns as $i => $col) {
+            $assoc[$col] = $row[$i] ?? null;
+        }
+
+        $result[] = $assoc;
+    }
+
+    return $result;
 }
+
