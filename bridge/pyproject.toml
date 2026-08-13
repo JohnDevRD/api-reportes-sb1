@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     # hdbcli: cliente oficial de SAP para Python (protocolo nativo).
-    "hdbcli>=3.0.0",
+    "hdbcli>=2.0.0",
     # pyhdb: driver puro en Python, usado como respaldo si hdbcli falla.
     "pyhdb",
 ]

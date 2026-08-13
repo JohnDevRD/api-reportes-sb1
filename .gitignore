@@ -10,3 +10,10 @@ Thumbs.db
 /node_modules/
 .atl/
 /test_conexion.php
+/bridge/.bridge.env
+
+# Artefactos del bridge (Python/uv)
+__pycache__/
+*.pyc
+/bridge/.venv/
+/bridge/uv.lock

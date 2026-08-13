@@ -91,8 +91,11 @@ REM 2. Instala uv (o via pip/winget/scoop) y crea el entorno
 cd C:\bridge
 uv sync        REM leera pyproject.toml, crea .venv y genera uv.lock
 
-REM 3. Configura (opcional): crea un .env o edita run_bridge.bat
-REM    (host, usuario, password, token) y guarda el mismo BRIDGE_TOKEN en .env de la API.
+REM 3. Configuracion: crea bridge\.bridge.env (ignorado por git),
+REM    NO edites el .bat. El bridge lee este archivo al arrancar.
+copy .bridge.env.example .bridge.env
+REM    Rellena en .bridge.env: host, usuario, password, token
+REM    y guarda el MISMO BRIDGE_TOKEN en .env de la API.
 
 REM 4. Arranque manual (ventana abierta)
 windows\run_bridge.bat

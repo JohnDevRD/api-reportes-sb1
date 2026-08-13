@@ -29,6 +29,38 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+
+def load_env_file(path=None):
+    """Carga KEY=VALUE desde un archivo .env contiguo al script (si existe).
+
+    .bridge.env tiene prioridad sobre el entorno del proceso. Esto evita que una
+    variable de entorno heredada (p. ej. un token placeholder) anule la config
+    local real. En un despliegue Linux por systemd ese archivo no existira, por
+    lo que las variables de /etc/hana-bridge.env siguen siendo las que se usan.
+    """
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".bridge.env")
+
+    if not os.path.isfile(path):
+        return
+
+    with open(path, "r", encoding="utf-8") as fh:
+        for raw in fh:
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            if key:
+                # .bridge.env prevalece: asi un token placeholder en el entorno
+                # del proceso no anula la configuracion local real.
+                os.environ[key] = value
+
+
+# Lee primero .bridge.env (si existe) para tener HANA_* y BRIDGE_* disponibles.
+load_env_file()
+
 HANA_HOST = os.environ.get("HANAB1_HOST", "127.0.0.1")
 HANA_PORT = int(os.environ.get("HANAB1_PORT", "30015"))
 HANA_USER = os.environ.get("HANA_USER", "")
@@ -36,6 +68,11 @@ HANA_PASSWORD = os.environ.get("HANA_PASSWORD", "")
 BRIDGE_TOKEN = os.environ.get("BRIDGE_TOKEN", "")
 LISTEN_HOST = os.environ.get("BRIDGE_LISTEN", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("BRIDGE_PORT", "8088"))
+
+# Esquema por defecto de HANA donde estan las vistas/tablas (p. ej. DB_ACV).
+# Al conectarse se ejecuta SET SCHEMA para que las consultas sin esquema de la
+# API (ej. "VW_REPORTE_CAJA_CHICA") se resuelvan en este esquema.
+HANA_SCHEMA = os.environ.get("HANA_SCHEMA", "")
 
 _conn = None
 
@@ -60,10 +97,21 @@ def get_connection():
 
     if driver == "hdbcli":
         _conn = dbapi.connect(
-            HANA_USER, HANA_PASSWORD, host=HANA_HOST, port=HANA_PORT
+            address=HANA_HOST,
+            port=HANA_PORT,
+            user=HANA_USER,
+            password=HANA_PASSWORD,
         )
     else:
         _conn = pyhdb.connect(HANA_HOST, HANA_PORT, HANA_USER, HANA_PASSWORD)
+
+    # Fija el esquema por defecto de la conexion para las consultas sin esquema.
+    if HANA_SCHEMA:
+        cur = _conn.cursor()
+        try:
+            cur.execute('SET SCHEMA "%s"' % HANA_SCHEMA)
+        finally:
+            cur.close()
 
     return _conn
 
@@ -144,6 +192,10 @@ def main():
         print("[aviso] Variable 'HANA_USER' no definida en el entorno")
     if not HANA_PASSWORD:
         print("[aviso] Variable 'HANA_PASSWORD' no definida en el entorno")
+
+    _tok = (BRIDGE_TOKEN[:4] + "...") if BRIDGE_TOKEN else "(vacio)"
+    print("[config] HANA %s:%s | user=%s | BRIDGE_TOKEN=%s"
+          % (HANA_HOST, HANA_PORT, HANA_USER, _tok))
 
     server = ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler)
     print(
