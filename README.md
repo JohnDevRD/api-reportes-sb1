@@ -69,6 +69,35 @@ Cada endpoint tiene su documentación en `documentacion/v1/consultas/`.
 
 Ver [`documentacion/v1/consultas/caja_chica/reporte.md`](documentacion/v1/consultas/caja_chica/reporte.md).
 
+## Estructura de carpetas
+
+```
+api/v1/_shared.php                 ← bootstrap común de las APIs de consulta
+api/v1/consultas/<modulo>/<api>.php ← endpoints (solo-GET)
+vistas/<modulo>/<VISTA>.sql         ← vistas SQL de SAP HANA
+documentacion/v1/consultas/<modulo>/<api>.md
+```
+
+`api/v1/_shared.php` concentra todo lo común de una API de consulta: CORS,
+respuesta JSON estándar (`json_response`), saneo de errores según `APP_DEBUG`,
+validación de parámetros (`date_param`, `int_param`, `string_param`,
+`decimal_param`), sanitización de filas (`sanitize_row`) y paginación
+(`pagination_params`).
+
+## Cómo agregar una API de consulta
+
+1. **Vista SQL**: crea `vistas/<modulo>/VW_<NOMBRE>.sql` con la consulta del
+   reporte en HANA.
+2. **Endpoint**: crea `api/v1/consultas/<modulo>/<api>.php` que comience con
+   `require __DIR__ . '/../../_shared.php';` y use los helpers de `_shared.php`
+   (leer filtros → `build_where` → `hana_query` → `json_response`).
+3. **Documentación**: crea `documentacion/v1/consultas/<modulo>/<api>.md` con
+   parámetros, ejemplo de `curl` y ejemplo de respuesta.
+4. **README**: agrega la fila en la tabla de Endpoints.
+
+Con eso cada API nueva es solo 1 vista + 1 archivo + su doc, sin repetir
+infraestructura.
+
 ## Seguridad
 
 - **Consultas parametrizadas** en todas las consultas — sin riesgo de inyección SQL
