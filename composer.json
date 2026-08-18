@@ -19,9 +19,9 @@
     },
     "require": {
         "php": ">=8.0",
-        "ext-odbc": "*",
         "ext-mbstring": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-curl": "*"
     },
     "scripts": {
         "lint": "php -l api/ config/",

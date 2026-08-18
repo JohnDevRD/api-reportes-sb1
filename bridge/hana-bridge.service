@@ -1,0 +1,21 @@
+[Unit]
+# SOLO PARA LINUX (systemd). En WINDOWS usa bridge\windows\run_bridge.bat
+# o un servicio NSSM / Tarea Programada (ver README).
+Description=HANA Bridge for PHP API (api-reportes-sb1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Cambia User/WorkingDirectory segun donde copies el bridge en tu maquina.
+User=debianacv
+Group=debianacv
+WorkingDirectory=/opt/hana-bridge
+EnvironmentFile=/etc/hana-bridge.env
+# Env. creado con uv:  cd /opt/hana-bridge && uv sync
+ExecStart=/opt/hana-bridge/.venv/bin/python /opt/hana-bridge/hana_bridge.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

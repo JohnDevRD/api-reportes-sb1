@@ -120,7 +120,7 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
 {
   "ok": false,
   "message": "Descripción del error",
-  "error": "Detalle del error del driver ODBC (opcional)"
+  "error": "Detalle del error de la consulta (opcional)"
 }
 ```
 
@@ -177,10 +177,10 @@ curl ".../reporte.php?cash_acct=11010201&fecha_origen_desde=2026-05-01&fecha_ori
 
 ## Notas de implementación
 
-- La conexión a SAP HANA se gestiona en `config/conexion.php` mediante `get_hana_connection()`.
+- La conexión a SAP HANA se hace a través del **bridge Python** (`bridge/`) usando la función `hana_query()` definida en `config/conexion.php`. No se utiliza un driver ODBC.
 - El `WHERE` se construye dinámicamente: solo se agregan las condiciones de los filtros que el cliente envía. Sin filtros, se devuelven todos los registros.
-- Todas las consultas usan `odbc_prepare()` + `odbc_execute()` con parámetros posicionales (`?`) para evitar inyección SQL.
-- Los campos `DocDate` y `FechaOrigen` se sanitizan en PHP para eliminar bytes nulos que ODBC puede inyectar en buffers de tipo fecha. Solo se conserva la parte `YYYY-MM-DD`.
+- Todas las consultas se envían al bridge con parámetros posicionales (`?`) y se ejecutan como consultas parametrizadas para evitar inyección SQL.
+- Los campos `DocDate` y `FechaOrigen` se sanitizan en PHP para eliminar bytes nulos que HANA puede inyectar en buffers de tipo fecha. Solo se conserva la parte `YYYY-MM-DD`.
 - Todos los valores de texto se normalizan a UTF-8 con `mb_convert_encoding` para evitar problemas de codificación.
 
 ---

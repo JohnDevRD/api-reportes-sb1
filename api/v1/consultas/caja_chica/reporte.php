@@ -1,18 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../../../../config/conexion.php';
-
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
+require __DIR__ . '/../../_shared.php';
 
 const DATA_COLUMNS_SQL = <<<'SQL'
 SELECT
@@ -23,139 +11,6 @@ SELECT
     "InvType"
 FROM "VW_REPORTE_CAJA_CHICA"
 SQL;
-
-// ─── Helpers de respuesta ─────────────────────────────────────────────────────
-
-function json_response(int $statusCode, array $payload): void
-{
-    http_response_code($statusCode);
-    header('Content-Type: application/json; charset=utf-8');
-
-    $options = JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
-
-    if (filter_var(env_value('APP_DEBUG', 'false'), FILTER_VALIDATE_BOOLEAN)) {
-        $options |= JSON_PRETTY_PRINT;
-    }
-
-    echo json_encode($payload, $options);
-    exit;
-}
-
-function sanitize_error(string $message): string
-{
-    $debug = filter_var(env_value('APP_DEBUG', 'false'), FILTER_VALIDATE_BOOLEAN);
-    return $debug ? $message : 'Internal server error';
-}
-
-// ─── Helpers de parámetros ────────────────────────────────────────────────────
-
-function date_param(string $key, ?string $default = null): ?string
-{
-    $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-
-    if ($value === null || trim((string) $value) === '') {
-        return $default;
-    }
-
-    $value = trim((string) $value);
-
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-        json_response(400, [
-            'ok'      => false,
-            'message' => "El parámetro {$key} debe tener formato YYYY-MM-DD."
-        ]);
-    }
-
-    [$year, $month, $day] = array_map('intval', explode('-', $value));
-
-    if (!checkdate($month, $day, $year)) {
-        json_response(400, [
-            'ok'      => false,
-            'message' => "El parámetro {$key} contiene una fecha inválida."
-        ]);
-    }
-
-    return $value;
-}
-
-function int_param(string $key, int $default, int $min, int $max): int
-{
-    $value = filter_input(INPUT_GET, $key, FILTER_VALIDATE_INT);
-
-    if ($value === false || $value === null) {
-        $value = $default;
-    }
-
-    if ($value < $min || $value > $max) {
-        json_response(400, [
-            'ok'      => false,
-            'message' => "El parámetro {$key} debe estar entre {$min} y {$max}."
-        ]);
-    }
-
-    return $value;
-}
-
-function string_param(string $key): ?string
-{
-    $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-
-    if ($value === null || trim((string) $value) === '') {
-        return null;
-    }
-
-    return trim((string) $value);
-}
-
-function decimal_param(string $key): ?float
-{
-    $value = filter_input(INPUT_GET, $key, FILTER_VALIDATE_FLOAT);
-
-    return ($value === false || $value === null) ? null : $value;
-}
-
-// ─── Sanitización de filas ────────────────────────────────────────────────────
-
-function sanitize_row(array $row): array
-{
-    // Columnas que deben quedar como fecha pura YYYY-MM-DD
-    $dateColumns = ['DocDate', 'FechaOrigen'];
-
-    foreach ($row as $key => $value) {
-        if (!is_string($value)) {
-            continue;
-        }
-
-        // 1. Eliminar bytes nulos y caracteres de control
-        //    (conserva espacio, tab, LF, CR)
-        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
-
-        // 2. Si es columna de fecha, extraer solo YYYY-MM-DD
-        if (in_array($key, $dateColumns, true)) {
-            if (preg_match('/(\d{4}-\d{2}-\d{2})/', $value, $m)) {
-                $value = $m[1];
-            }
-        }
-
-        // 3. Normalizar encoding a UTF-8
-        $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
-
-        $row[$key] = $value;
-    }
-
-    return $row;
-}
-
-// ─── Constructor de WHERE dinámico ────────────────────────────────────────────
-
-function build_where(array $conditions, array $params): array
-{
-    if (empty($conditions)) {
-        return ['', []];
-    }
-
-    return [' WHERE ' . implode(' AND ', $conditions), $params];
-}
 
 // ─── Leer todos los filtros ───────────────────────────────────────────────────
 
@@ -272,52 +127,29 @@ foreach ($textFilters as $param => $column) {
 
 // ─── Paginación ───────────────────────────────────────────────────────────────
 
-$page   = int_param('page', 1, 1, 100000);
-$limit  = int_param('limit', 100, 1, 500);
-$offset = ($page - 1) * $limit;
+[$page, $limit, $offset] = pagination_params();
 
 [$whereSql, $whereParams] = build_where($conditions, $params);
 
 // ─── Conexión ─────────────────────────────────────────────────────────────────
-
-$conn = get_hana_connection();
-
-if ($conn === false) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo conectar a SAP HANA.',
-        'error'   => sanitize_error(odbc_errormsg())
-    ]);
-}
+// La conexion se hace a traves del bridge HANA (hana_query) en cada consulta;
+// no se mantiene un recurso ODBC persistente.
 
 // ─── Consulta de total (siempre se ejecuta) ───────────────────────────────────
 
-$countSql  = 'SELECT COUNT(*) AS "TOTAL" FROM "VW_REPORTE_CAJA_CHICA"' . $whereSql;
-$countStmt = odbc_prepare($conn, $countSql);
+$countSql = 'SELECT COUNT(*) AS "TOTAL" FROM "VW_REPORTE_CAJA_CHICA"' . $whereSql;
 
-if ($countStmt === false) {
+try {
+    $countRows = hana_query($countSql, $whereParams);
+} catch (Throwable $e) {
     json_response(500, [
         'ok'      => false,
-        'message' => 'No se pudo preparar la consulta de total.',
-        'error'   => sanitize_error(odbc_errormsg($conn))
+        'message' => 'No se pudo consultar el total.',
+        'error'   => sanitize_error($e->getMessage())
     ]);
 }
 
-if (!odbc_execute($countStmt, $whereParams)) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo ejecutar la consulta de total.',
-        'error'   => sanitize_error(odbc_errormsg($countStmt))
-    ]);
-}
-
-$total = null;
-
-if (odbc_fetch_row($countStmt)) {
-    $total = (int) odbc_result($countStmt, 1);
-}
-
-odbc_free_result($countStmt);
+$total = (int) ($countRows[0]['TOTAL'] ?? 0);
 
 // ─── Consulta de datos ────────────────────────────────────────────────────────
 
@@ -326,32 +158,21 @@ $dataSql = DATA_COLUMNS_SQL
     . ' ORDER BY "DocDate" DESC, "Pago", "TipoDetalle", "Linea"'
     . ' LIMIT ' . $limit . ' OFFSET ' . $offset;
 
-$dataStmt = odbc_prepare($conn, $dataSql);
-
-if ($dataStmt === false) {
+try {
+    $rows = hana_query($dataSql, $whereParams);
+} catch (Throwable $e) {
     json_response(500, [
         'ok'      => false,
-        'message' => 'No se pudo preparar la consulta del reporte.',
-        'error'   => sanitize_error(odbc_errormsg($conn))
-    ]);
-}
-
-if (!odbc_execute($dataStmt, $whereParams)) {
-    json_response(500, [
-        'ok'      => false,
-        'message' => 'No se pudo ejecutar la consulta del reporte.',
-        'error'   => sanitize_error(odbc_errormsg($dataStmt))
+        'message' => 'No se pudo consultar el reporte.',
+        'error'   => sanitize_error($e->getMessage())
     ]);
 }
 
 $data = [];
 
-while (($row = odbc_fetch_array($dataStmt)) !== false) {
-    $data[] = sanitize_row($row); // ← limpia fechas y encoding
+foreach ($rows as $row) {
+    $data[] = sanitize_row($row, ['DocDate', 'FechaOrigen']); // ← limpia fechas y encoding
 }
-
-odbc_free_result($dataStmt);
-odbc_close($conn);
 
 // ─── Respuesta ────────────────────────────────────────────────────────────────
 
