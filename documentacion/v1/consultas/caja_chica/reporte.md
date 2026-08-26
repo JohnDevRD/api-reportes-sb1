@@ -98,7 +98,7 @@ Este endpoint devuelve el reporte de caja chica a partir de la vista [`VW_REPORT
       "DocDate": "2026-06-11",
       "CardCode": "C00001",
       "CardName": "EMPRESA DE EJEMPLO SRL",
-      "CashAcct": "11010201",
+      "CashAcct": "12345678",
       "TipoDetalle": "FACTURA PROVEEDOR",
       "Linea": "0",
       "GTotal": "161.420000",
@@ -170,7 +170,7 @@ curl ".../reporte.php?card_name=Almacenes&sum_min=100&sum_max=5000"
 curl ".../reporte.php?num_at_card=FACT-001"
 
 # Combinado: cuenta de caja + rango de fecha origen + página 2
-curl ".../reporte.php?cash_acct=11010201&fecha_origen_desde=2026-05-01&fecha_origen_hasta=2026-05-31&page=2&limit=50"
+curl ".../reporte.php?cash_acct=12345678&fecha_origen_desde=2026-05-01&fecha_origen_hasta=2026-05-31&page=2&limit=50"
 ```
 
 ---
