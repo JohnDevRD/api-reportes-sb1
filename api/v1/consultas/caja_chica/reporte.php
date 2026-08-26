@@ -158,6 +158,11 @@ $dataSql = DATA_COLUMNS_SQL
     . ' ORDER BY "DocDate" DESC, "Pago", "TipoDetalle", "Linea"'
     . ' LIMIT ' . $limit . ' OFFSET ' . $offset;
 
+// Se inicializa para satisfacer al analizador estático: si hana_query()
+// lanzara una excepción, json_response() termina el script (exit) y $rows
+// siempre queda definido como array antes del foreach.
+$rows = [];
+
 try {
     $rows = hana_query($dataSql, $whereParams);
 } catch (Throwable $e) {
