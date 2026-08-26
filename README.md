@@ -55,6 +55,7 @@ la API.
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | `GET` | `/api/v1/consultas/caja_chica/reporte.php` | Reporte de caja chica con filtros y paginación |
+| `GET` | `/api/v1/consultas/acuerdos_comerciales/reporte.php` | Reporte de acuerdos comerciales con filtros y paginación |
 
 ### Próximos módulos
 
@@ -68,6 +69,7 @@ la API.
 Cada endpoint tiene su documentación en `documentacion/v1/consultas/`.
 
 Ver [`documentacion/v1/consultas/caja_chica/reporte.md`](documentacion/v1/consultas/caja_chica/reporte.md).
+Ver [`documentacion/v1/consultas/acuerdos_comerciales/reporte.md`](documentacion/v1/consultas/acuerdos_comerciales/reporte.md).
 
 ## Estructura de carpetas
 
