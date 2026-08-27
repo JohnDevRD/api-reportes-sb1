@@ -5,7 +5,8 @@ require __DIR__ . '/../../_shared.php';
 const DATA_COLUMNS_SQL = <<<'SQL'
 SELECT
     "DocDate", "DocNum", "CardCode", "CardName", "DocTotal",
-    "AcctCode", "Dscription", "PeyMethod", "Origen"
+    "AcctCode", "Dscription", "PeyMethod", "Origen",
+    "PaidSum", "Saldo Pendiente"
 FROM "VW_REPORTE_ACUERDOS_COMERCIALES"
 SQL;
 

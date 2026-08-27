@@ -5,7 +5,7 @@
 GET /api/v1/consultas/acuerdos_comerciales/reporte.php
 ```
 
-Este endpoint devuelve el reporte de acuerdos comerciales a partir de la vista [`VW_REPORTE_ACUERDOS_COMERCIALES`](../../../../vistas/acuerdos_comerciales/VW_REPORTE_ACUERDOS_COMERCIALES.sql) de SAP HANA, que consolida notas de crédito (`ORPC`), entradas de mercancía (`OIGN`) y pagos recibidos (`ORCT`).
+Este endpoint devuelve el reporte de acuerdos comerciales a partir de la vista [`VW_REPORTE_ACUERDOS_COMERCIALES`](../../../../vistas/acuerdos_comerciales/VW_REPORTE_ACUERDOS_COMERCIALES.sql) de SAP HANA, que consolida notas de crédito (`ORPC`), entradas de mercancía (`OIGN`), pagos recibidos (`ORCT`) y facturas de clientes (`OINV`).
 
 ---
 
@@ -33,7 +33,7 @@ Este endpoint devuelve el reporte de acuerdos comerciales a partir de la vista [
 | `card_code` | `CardCode` | Código de cliente/proveedor exacto. |
 | `acct_code` | `AcctCode` | Cuenta contable exacta. |
 | `pey_method` | `PeyMethod` | Método de pago exacto. |
-| `origen` | `Origen` | Origen exacto (`Nota de Crédito (ORPC)`, `Entrada de Mercancía (OIGN)`, `Pago Recibido (ORCT)`). |
+| `origen` | `Origen` | Origen exacto (`Nota de Crédito (ORPC)`, `Entrada de Mercancía (OIGN)`, `Pago Recibido (ORCT)`, `Factura (OINV)`). |
 
 ### Filtros de texto (búsqueda parcial — `LIKE %...%`)
 
@@ -92,7 +92,9 @@ Este endpoint devuelve el reporte de acuerdos comerciales a partir de la vista [
       "AcctCode": "99000003",
       "Dscription": "Servicio de mantenimiento",
       "PeyMethod": "13",
-      "Origen": "Nota de Crédito (ORPC)"
+      "Origen": "Nota de Crédito (ORPC)",
+      "PaidSum": "0.000000",
+      "Saldo Pendiente": "1250.000000"
     },
     {
       "DocDate": "2026-06-10",
@@ -137,7 +139,9 @@ Este endpoint devuelve el reporte de acuerdos comerciales a partir de la vista [
 | `AcctCode` | `string` | Cuenta contable (p. ej. `99000001`, `99000002`, `99000003`, `99000004`). |
 | `Dscription` | `string` | Descripción del detalle. |
 | `PeyMethod` | `string` | Método de pago  (puede ser `null`). |
-| `Origen` | `string` | Origen del registro: `Nota de Crédito (ORPC)`, `Entrada de Mercancía (OIGN)` o `Pago Recibido (ORCT)`. |
+| `Origen` | `string` | Origen del registro: `Nota de Crédito (ORPC)`, `Entrada de Mercancía (OIGN)`, `Pago Recibido (ORCT)` o `Factura (OINV)`. |
+| `PaidSum` | `string` | Importe pagado del documento (con 6 decimales). Puede ser `null`. |
+| `Saldo Pendiente` | `string` | Saldo pendiente del documento (`DocTotal - PaidSum`, con 6 decimales). Puede ser `null`. |
 
 ---
 
@@ -170,8 +174,9 @@ curl ".../reporte.php?acct_code=99000003&dscription=insumos&page=2&limit=50"
 - El resultado se ordena por `DocDate DESC` y luego por `DocNum`.
 - El campo `DocDate` se sanitiza en PHP para eliminar bytes nulos que HANA puede inyectar en buffers de tipo fecha. Solo se conserva la parte `YYYY-MM-DD`.
 - `CardCode`, `CardName`, `PeyMethod` pueden ser `null` en las ramas de `OIGN`/`ORCT` de la vista.
+- `PaidSum` y `Saldo Pendiente` son `null` en las ramas de `ORPC`, `OIGN` y `ORCT`; solo la rama `OINV` (facturas) los calcula (`PaidSum` y `DocTotal - PaidSum`).
 - Todos los valores de texto se normalizan a UTF-8 con `mb_convert_encoding` para evitar problemas de codificación.
 
 ---
 
-*Documentado el 2026-08-26 — v1*
+*Documentado el 2026-08-26 — v2*
