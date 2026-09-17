@@ -14,6 +14,30 @@ Cliente HTTP -> PHP API -> (HTTP 127.0.0.1:8088) -> Bridge Python -> HANA :30015
 - Habilitar `pip` y opcionalmente un `venv`
 - Extension `php-curl` en el PHP de la API (`sudo apt install php-curl`)
 
+## Instalacion en un paso (Linux, recomendada)
+
+Instala y arranca todo automaticamente. Desde la **raiz del repo**:
+
+```bash
+bash install-bridge.sh
+```
+
+El script:
+1. Verifica que estes en la raiz del repo (carpeta `bridge/` presente)
+2. Instala `uv` si no existe
+3. Copia `hana_bridge.py`, `pyproject.toml` y `requirements.txt` a `/opt/hana-bridge`
+4. Crea el entorno con `uv sync` y ajusta la propiedad al usuario real
+5. Crea `/etc/hana-bridge.env` desde el ejemplo (permisos 600) si no existe
+6. Registra el servicio systemd ajustando `User`/`Group`/`WorkingDirectory` al
+   usuario que ejecuta (no usa nombres hardcodeados)
+7. Habilita y arranca el servicio, y muestra el estado
+
+Despues de correrlo, edita `/etc/hana-bridge.env` con tus credenciales de HANA
+y reinicia: `sudo systemctl restart hana-bridge.service`.
+
+> `install-bridge.sh` detecta el usuario real via `SUDO_USER`/`USER`: ejecutalo
+> como usuario normal (con `sudo` cuando pida password), no como root directo.
+
 ## Instalacion
 
 ```bash
@@ -34,7 +58,7 @@ sudo chmod 600 /etc/hana-bridge.env
 
 # 4. Servicio systemd
 sudo cp hana-bridge.service /etc/systemd/system/
-sudo nano /etc/systemd/system/hana-bridge.service  # ajusta User/WorkingDirectory
+sudo nano /etc/systemd/system/hana-bridge.service  # ajusta User/Group/WorkingDirectory (el template usa User=hana-bridge como placeholder)
 sudo systemctl daemon-reload
 sudo systemctl enable --now hana-bridge.service
 
@@ -70,7 +94,7 @@ sudo chmod 600 /etc/hana-bridge.env
 
 # 4. Servicio systemd (usa el python del entorno uv)
 sudo cp hana-bridge.service /etc/systemd/system/
-sudo nano /etc/systemd/system/hana-bridge.service  # ajusta User/WorkingDirectory
+sudo nano /etc/systemd/system/hana-bridge.service  # ajusta User/Group/WorkingDirectory (el template usa User=hana-bridge como placeholder)
 sudo systemctl daemon-reload
 sudo systemctl enable --now hana-bridge.service
 
