@@ -7,9 +7,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Cambia User/WorkingDirectory segun donde copies el bridge en tu maquina.
-User=debianacv
-Group=debianacv
+# User/Group y WorkingDirectory se ajustan automaticamente con install-bridge.sh
+# (o manualmente: sudo nano /etc/systemd/system/hana-bridge.service)
+User=hana-bridge
+Group=hana-bridge
 WorkingDirectory=/opt/hana-bridge
 EnvironmentFile=/etc/hana-bridge.env
 # Env. creado con uv:  cd /opt/hana-bridge && uv sync

@@ -36,7 +36,20 @@ composer install          # o: composer dump-autoload
 ### Bridge HANA (paso aparte)
 
 Instala y arranca el bridge antes de usar la API. Ver
-[`bridge/README.md`](bridge/README.md) para Linux y Windows:
+[`bridge/README.md`](bridge/README.md) para Linux y Windows.
+
+**Opción rápida en Linux (recomendada):** desde la raíz del repo
+
+```bash
+bash install-bridge.sh
+```
+
+El script instala `uv` si falta, copia el bridge a `/opt/hana-bridge`, crea el
+entorno (`.venv`), genera `/etc/hana-bridge.env` si no existe y registra el
+servicio systemd ajustando `User`/`Group`/`WorkingDirectory` al usuario real.
+Solo hay que editar `/etc/hana-bridge.env` con las credenciales de HANA.
+
+**Opción manual** (Linux o Windows):
 
 ```bash
 cd bridge
