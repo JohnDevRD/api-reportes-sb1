@@ -2,11 +2,20 @@
 set -euo pipefail
 
 # ── Configuración ──────────────────────────────────────────────
-BRIDGE_SRC="./bridge"          # carpeta local del repo
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BRIDGE_SRC="$REPO_ROOT/bridge" # carpeta local del repo (ruta absoluta)
 BRIDGE_DEST="/opt/hana-bridge"
 SERVICE_NAME="hana-bridge.service"
 ENV_FILE="/etc/hana-bridge.env"
 RUN_USER="${SUDO_USER:-$USER}" # usuario real (el que ejecuta con sudo)
+
+# ── 0. No ejecutar como root (el servicio debe correr con usuario normal) ────
+if [[ $EUID -eq 0 ]]; then
+  echo "❌ No ejecutes este script como root."
+  echo "   Salí de root (exit o su - <usuario>) y volvelo a correr con tu usuario normal."
+  echo "   El script usa sudo solito cuando necesita permisos."
+  exit 1
+fi
 
 # ── 1. Verificar que estamos en la raíz del repo ───────────────
 if [[ ! -d "$BRIDGE_SRC" ]]; then
