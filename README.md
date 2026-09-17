@@ -25,7 +25,14 @@ en **Windows o Linux**, en la misma máquina que la API.
 
 ## Instalación
 
+El clone se hace **dentro de `/var/www/`** (webroot del servidor web), no en la
+raíz del usuario. Ejecutalo con tu usuario **no-root**:
+
 ```bash
+# Asegurar que /var/www te pertenezca (si fue creado por root)
+sudo chown -R $USER:$USER /var/www
+
+cd /var/www
 git clone https://github.com/tu-org/api-reportes-sb1.git
 cd api-reportes-sb1
 cp .env.example .env
@@ -62,6 +69,66 @@ La API espera el bridge en `BRIDGE_URL` (por defecto `http://127.0.0.1:8088/quer
 y le envía las consultas vía HTTP con un token (`BRIDGE_TOKEN`), por lo que las
 credenciales de la base solo se guardan en el entorno/local del bridge, nunca en
 la API.
+
+## Despliegue con nginx (Linux)
+
+El repositorio es el webroot de la API (no hay carpeta `public/`): los endpoints
+son archivos `.php` reales, por lo que solo se necesita apuntar el `root` y pasar
+los `.php` a PHP-FPM. Sin reglas de reescritura.
+
+> Requiere `php-fpm` instalado (`sudo apt install php-fpm`). Ajusta el socket a
+> tu versión de PHP (`php -v`).
+
+**1. Crear el sitio:**
+
+```bash
+sudo nano /etc/nginx/sites-available/api-reportes-sb1
+```
+
+```nginx
+server {
+    listen 80;
+    server_name _;   # o tu IP/dominio
+
+    root /var/www/api-reportes-sb1;
+    index index.php index.html;
+    autoindex off;
+
+    # Bloquear archivos sensibles (equivale al .htaccess de Apache)
+    location ~ /\.env { deny all; }
+    location ~ ^/config/ { deny all; }
+    location ~* \.(md|sql|log)$ { deny all; }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Pasar los .php a PHP-FPM
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+}
+```
+
+**2. Habilitar el sitio y recargar:**
+
+```bash
+sudo ln -s /etc/nginx/sites-available/api-reportes-sb1 /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default     # o el sitio activo que estorbe
+sudo nginx -t                                   # debe decir "syntax is ok"
+sudo systemctl reload nginx
+```
+
+**3. Probar:**
+
+```bash
+curl http://127.0.0.1/api/v1/consultas/caja_chica/reporte.php?limit=1
+```
+
+Si devuelve JSON, la API está servida. Recordá que la API usa el bridge
+(`BRIDGE_URL`/`BRIDGE_TOKEN` en `.env`) y el token debe coincidir con el de
+`/etc/hana-bridge.env`.
 
 ## Endpoints
 
