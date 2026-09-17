@@ -42,12 +42,13 @@ sudo cp "$BRIDGE_SRC/hana_bridge.py" \
         "$BRIDGE_DEST/"
 
 # ── 4. Sincronizar dependencias con uv ────────────────────────
-echo "🔄 Creando entorno e instalando dependencias (uv sync)..."
 cd "$BRIDGE_DEST"
-uv sync
 
-# Asegurar propiedad del usuario real (los cp anteriores fueron con sudo/root)
+# Pasar la propiedad al usuario real ANTES de uv sync (necesita escribir .venv)
 sudo chown -R "$RUN_USER":"$RUN_USER" "$BRIDGE_DEST"
+
+echo "🔄 Creando entorno e instalando dependencias (uv sync)..."
+uv sync
 
 # ── 5. Configurar archivo de entorno ──────────────────────────
 if [[ ! -f "$ENV_FILE" ]]; then
